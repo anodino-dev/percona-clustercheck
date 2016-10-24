@@ -4,6 +4,7 @@
 #
 # Author: Olaf van Zandwijk <olaf.vanzandwijk@nedap.com>
 # Author: Raghavendra Prabhu <raghavendra.prabhu@percona.com>
+# Author: Ovais Tariq <ovaistariq@twindb.com>
 #
 # Documentation and download: https://github.com/olafz/percona-clustercheck
 #
@@ -11,7 +12,7 @@
 #
 
 if [[ $1 == '-h' || $1 == '--help' ]];then
-    echo "Usage: $0 <user> <pass> <available_when_donor=0|1> <log_file> <available_when_readonly=0|1> <defaults_extra_file>"
+    echo "Usage: $0 <user> <pass> <available_when_donor=0|1> <log_file> <available_when_readonly=0|1> <defaults_extra_file> <available_when_recv_queue_at_threshold=0|1>"
     exit
 fi
 
@@ -35,6 +36,7 @@ AVAILABLE_WHEN_DONOR=${3:-0}
 ERR_FILE="${4:-/dev/null}"
 AVAILABLE_WHEN_READONLY=${5:-1}
 DEFAULTS_EXTRA_FILE=${6:-/etc/my.cnf}
+AVAILABLE_WHEN_RECV_QUEUE_AT_THRESHOLD=${7:-1}
 
 #Timeout exists for instances where mysqld may be hung
 TIMEOUT=10
@@ -80,6 +82,33 @@ then
             exit 1
         fi
     fi
+
+    # Check to see if the node's receive queue has filled up to the threshold
+    # The threshold in this case is gcs.fc_limit
+    if [[ ${AVAILABLE_WHEN_RECV_QUEUE_AT_THRESHOLD} -eq 0 ]]; then
+        GCS_FC_LIMIT=$(${MYSQL_CMDLINE} -e "SHOW GLOBAL VARIABLES LIKE 'wsrep_provider_options';" \
+                        2>${ERR_FILE} | tail -1 | tr ";" "\n" | \
+                        awk -F '=' '/gcs.fc_limit/ {printf "%d\n", $2}')
+        RECV_QUEUE_AVG=$(${MYSQL_CMDLINE} -e "SHOW GLOBAL STATUS LIKE 'wsrep_local_recv_queue_avg';" \
+                            2>${ERR_FILE} | tail -1 | awk '{printf "%d\n", $1}')
+
+        if (( ${RECV_QUEUE_AVG} >= ${GCS_FC_LIMIT} )); then
+            # Percona XtraDB Cluster node has more pending write sets in receive
+            # queue than the configured gcs.fc_limit. The variable
+            # AVAILABLE_WHEN_RECV_QUEUE_AT_THRESHOLD is set to 0.
+            # => return HTTP 503
+            # Shell return-code is 1
+            echo -en "HTTP/1.1 503 Service Unavailable\r\n"
+            echo -en "Content-Type: text/plain\r\n"
+            echo -en "Connection: close\r\n"
+            echo -en "Content-Length: 43\r\n"
+            echo -en "\r\n"
+            echo -en "Percona XtraDB Cluster Node recv_queue_avg ${RECV_QUEUE_AVG} >= gcs.fc_limit ${GCS_FC_LIMIT} .\r\n"
+            sleep 0.1
+            exit 1
+        fi
+    fi
+
     # Percona XtraDB Cluster node local state is 'Synced' => return HTTP 200
     # Shell return-code is 0
     echo -en "HTTP/1.1 200 OK\r\n"
