@@ -89,10 +89,10 @@ then
         GCS_FC_LIMIT=$(${MYSQL_CMDLINE} -e "SHOW GLOBAL VARIABLES LIKE 'wsrep_provider_options';" \
                         2>${ERR_FILE} | tail -1 | tr ";" "\n" | \
                         awk -F '=' '/gcs.fc_limit/ {printf "%d\n", $2}')
-        RECV_QUEUE_AVG=$(${MYSQL_CMDLINE} -e "SHOW GLOBAL STATUS LIKE 'wsrep_local_recv_queue_avg';" \
+        RECV_QUEUE_LEN=$(${MYSQL_CMDLINE} -e "SHOW GLOBAL STATUS LIKE 'wsrep_local_recv_queue';" \
                             2>${ERR_FILE} | tail -1 | awk '{printf "%d\n", $1}')
 
-        if (( ${RECV_QUEUE_AVG} >= ${GCS_FC_LIMIT} )); then
+        if (( ${RECV_QUEUE_LEN} >= ${GCS_FC_LIMIT} )); then
             # Percona XtraDB Cluster node has more pending write sets in receive
             # queue than the configured gcs.fc_limit. The variable
             # AVAILABLE_WHEN_RECV_QUEUE_AT_THRESHOLD is set to 0.
@@ -103,7 +103,7 @@ then
             echo -en "Connection: close\r\n"
             echo -en "Content-Length: 43\r\n"
             echo -en "\r\n"
-            echo -en "Percona XtraDB Cluster Node recv_queue_avg ${RECV_QUEUE_AVG} >= gcs.fc_limit ${GCS_FC_LIMIT} .\r\n"
+            echo -en "Percona XtraDB Cluster Node receive queue length ${RECV_QUEUE_LEN} >= gcs.fc_limit ${GCS_FC_LIMIT} .\r\n"
             sleep 0.1
             exit 1
         fi
