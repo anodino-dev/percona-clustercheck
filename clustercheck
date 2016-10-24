@@ -101,7 +101,7 @@ then
             echo -en "HTTP/1.1 503 Service Unavailable\r\n"
             echo -en "Content-Type: text/plain\r\n"
             echo -en "Connection: close\r\n"
-            echo -en "Content-Length: 43\r\n"
+            echo -en "Content-Length: 41\r\n"
             echo -en "\r\n"
             echo -en "Percona XtraDB Cluster Node is lagging.\r\n"
             sleep 0.1
