@@ -103,7 +103,7 @@ then
             echo -en "Connection: close\r\n"
             echo -en "Content-Length: 43\r\n"
             echo -en "\r\n"
-            echo -en "Percona XtraDB Cluster Node receive queue length ${RECV_QUEUE_LEN} >= gcs.fc_limit ${GCS_FC_LIMIT} .\r\n"
+            echo -en "Percona XtraDB Cluster Node is lagging.\r\n"
             sleep 0.1
             exit 1
         fi
