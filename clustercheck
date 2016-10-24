@@ -96,7 +96,7 @@ then
         RECV_QUEUE_LEN=$(${MYSQL_CMDLINE} -e "SHOW GLOBAL STATUS LIKE 'wsrep_local_recv_queue';" \
                             2>${ERR_FILE} | tail -1 | awk '{printf "%d\n", $1}')
 
-        if (( (${RECV_QUEUE_LEN} + ${NUM_SLAVE_THREADS}) >= ${GCS_FC_LIMIT} )); then
+        if (( ${RECV_QUEUE_LEN} > (${GCS_FC_LIMIT} - ${NUM_SLAVE_THREADS}) )); then
             # Percona XtraDB Cluster node has more pending write sets in receive
             # queue than the configured gcs.fc_limit. The variable
             # AVAILABLE_WHEN_RECV_QUEUE_AT_THRESHOLD is set to 0.
