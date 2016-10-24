@@ -85,6 +85,7 @@ The clustercheck script accepts several arguments:
 - **log_file** (default "/dev/null"): defines where logs and errors from the checks should go
 - **available_when_readonly** (default 1): Depending on this setting and the MySQL status variable 'read_only', the node is reported available
 - **defaults_extra_file** (default /etc/my.cnf): This file (if exists) will be passed to the mysql-command with the commandline option --defaults-extra-file
+- **available_when_recv_queue_at_threshold** (default 1): Depending on this setting, the galera option 'gcs.fc_limit' and the node's receive queue length, the node is reported available
 
 Note: You can also specify the username and password for the check in the **defaults_extra_file** and pass empty values for **user** and **pass**. That way, nobody can see the username and password (which can otherwise be seen, since they are passed to the MySQL CLI)
 
